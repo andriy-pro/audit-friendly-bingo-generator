@@ -82,6 +82,15 @@ def run(
 
     # Try minimal BIBD-like attempt when feasible; fallback to heuristic
     cards = build_cards_bibd(R=R, T=T, m=m, n=n, uniformity=uniformity)
+    if cards is not None:
+        # Validate BIBD result against uniqueness; fallback if violations found
+        pre_report = verify_artifacts(cards, R=R, m=m, n=n, unique_scope=unique_scope)
+        if (
+            (pre_report.get("uniqueness", {}).get("row_set_collisions", 0) > 0)
+            or (pre_report.get("uniqueness", {}).get("col_set_collisions", 0) > 0)
+            or (pre_report.get("ok_no_identical_cards") is False)
+        ):
+            cards = None
     if cards is None:
         cards = build_cards(
             R=R,
@@ -93,6 +102,7 @@ def run(
             seed=seed_value,
             position_balance=position_balance,
             unique_scope=unique_scope,
+            max_attempts=1000,
         )
     report = verify_artifacts(cards, R=R, m=m, n=n, unique_scope=unique_scope)
 

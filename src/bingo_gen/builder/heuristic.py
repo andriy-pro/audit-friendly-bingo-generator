@@ -82,24 +82,38 @@ def build_cards(
             if not success:
                 break
 
-            # For m==2 and col uniqueness, try to find a pairing avoiding collisions
-            if m == 2 and "col_sets" in unique_scope:
-                row1, row2 = matrix[0], matrix[1]
-                ok_perm = None
-                for perm in itertools.permutations(range(n)):
+            # For m>=2 and col uniqueness, try limited permutations of subsequent rows to avoid column collisions
+            if m >= 2 and "col_sets" in unique_scope:
+                anchors = matrix[0]
+                row_perms = []
+                for r_idx in range(1, m):
+                    base = matrix[r_idx]
+                    perms = list(itertools.permutations(range(n)))
+                    if len(perms) > 120:
+                        perms = perms[:120]
+                    row_perms.append((r_idx, base, perms))
+
+                assigned = None
+                for perm_combo in itertools.product(*[p[2] for p in row_perms]):
                     cols_ok = True
                     for j in range(n):
-                        cs = tuple(sorted((row1[j], row2[perm[j]])))
+                        col_vals = [anchors[j]]
+                        for combo_idx, (r_idx, base, _perms) in enumerate(row_perms):
+                            perm = perm_combo[combo_idx]
+                            col_vals.append(base[perm[j]])
+                        cs = tuple(sorted(col_vals))
                         if cs in seen_col_sets:
                             cols_ok = False
                             break
                     if cols_ok:
-                        ok_perm = perm
+                        assigned = perm_combo
                         break
-                if ok_perm is None:
+                if assigned is None:
                     success = False
                     break
-                matrix[1] = [row2[j] for j in ok_perm]
+                for combo_idx, (r_idx, base, _) in enumerate(row_perms):
+                    perm = assigned[combo_idx]
+                    matrix[r_idx] = [base[perm[j]] for j in range(n)]
 
             # Global uniqueness checks
             card_rows = row_sets_of_card(matrix)
