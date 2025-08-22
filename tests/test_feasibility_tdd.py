@@ -30,7 +30,7 @@ def theoretical_feasible(R: int, T: int, m: int, n: int, unique_scope: list[str]
     T=st.integers(min_value=1, max_value=200),
     m=st.integers(min_value=1, max_value=6),
     n=st.integers(min_value=1, max_value=6),
-    scope=st.lists(st.sampled_from(["row_sets", "col_sets"]), min_size=0, max_size=2)
+    scope=st.lists(st.sampled_from(["row_sets", "col_sets"]), min_size=0, max_size=2),
 )
 def test_combinatorial_capacity_property(R, T, m, n, scope):
     scope = sorted(set(scope))
@@ -64,5 +64,3 @@ def test_near_uniformity_bounds_example():
     base, remainder = compute_near_uniform_targets(R=10, T=3, m=2, n=2)
     assert base == 1
     assert remainder == 2  # P=12, base=1, remainder=2
-
-

@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Dict
 
 
-def build_global_frequencies(*, R: int, T: int, m: int, n: int, mode: str, position_balance: bool) -> Dict[int, int]:
+def build_global_frequencies(
+    *, R: int, T: int, m: int, n: int, mode: str, position_balance: bool
+) -> Dict[int, int]:
     """Compute per-number frequencies for global pool according to uniformity mode.
 
     - strict: all numbers appear equally often (requires P % R == 0)
@@ -28,5 +30,3 @@ def build_global_frequencies(*, R: int, T: int, m: int, n: int, mode: str, posit
 
     # position_balance is a soft constraint applied later during placement; global counts unchanged here
     return freqs
-
-

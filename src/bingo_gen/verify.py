@@ -27,7 +27,9 @@ def compute_frequencies(cards: Sequence[Sequence[Sequence[int]]], R: int) -> Dic
     return dict(counts)
 
 
-def compute_position_frequencies(cards: Sequence[Sequence[Sequence[int]]], R: int) -> Dict[str, Dict[int, int]]:
+def compute_position_frequencies(
+    cards: Sequence[Sequence[Sequence[int]]], R: int
+) -> Dict[str, Dict[int, int]]:
     pos_counts: Dict[Tuple[int, int], Counter] = defaultdict(Counter)
     if not cards:
         return {}
@@ -44,7 +46,9 @@ def compute_position_frequencies(cards: Sequence[Sequence[Sequence[int]]], R: in
     return out
 
 
-def count_set_collisions(cards: Sequence[Sequence[Sequence[int]]], scope: List[str]) -> UniquenessReport:
+def count_set_collisions(
+    cards: Sequence[Sequence[Sequence[int]]], scope: List[str]
+) -> UniquenessReport:
     rows_seen: Counter = Counter()
     cols_seen: Counter = Counter()
     check_rows = "row_sets" in scope
@@ -95,6 +99,7 @@ def chi2_wilson_hilferty_pvalue(stat: float, df: int) -> float:
     mu = 1.0 - 2.0 / (9.0 * df)
     sigma = math.sqrt(2.0 / (9.0 * df))
     z = (t - mu) / sigma
+
     # Survival function ~ 1 - Phi(z)
     # Approximate Phi via error function
     def phi(val: float) -> float:
@@ -104,7 +109,9 @@ def chi2_wilson_hilferty_pvalue(stat: float, df: int) -> float:
     return max(0.0, min(1.0, p_right))
 
 
-def uniformity_tests(freqs: Dict[int, int], R: int, mode: str, alpha: float = 0.05) -> Dict[str, object]:
+def uniformity_tests(
+    freqs: Dict[int, int], R: int, mode: str, alpha: float = 0.05
+) -> Dict[str, object]:
     P = sum(freqs.values())
     if P == 0 or R == 0:
         return {"mode": mode, "max_minus_min": 0, "chi2": {"stat": 0.0, "df": 0, "p_value": 1.0}}
@@ -123,7 +130,9 @@ def uniformity_tests(freqs: Dict[int, int], R: int, mode: str, alpha: float = 0.
     }
 
 
-def verify(cards: Sequence[Sequence[Sequence[int]]], *, R: int, m: int, n: int, unique_scope: List[str]) -> Dict[str, object]:
+def verify(
+    cards: Sequence[Sequence[Sequence[int]]], *, R: int, m: int, n: int, unique_scope: List[str]
+) -> Dict[str, object]:
     freqs = compute_frequencies(cards, R)
     pos_freqs = compute_position_frequencies(cards, R)
     uniq = count_set_collisions(cards, unique_scope)
@@ -150,5 +159,3 @@ def verify(cards: Sequence[Sequence[Sequence[int]]], *, R: int, m: int, n: int, 
         "ok_no_duplicates_within_cards": ok_no_dupes,
         "ok_no_identical_cards": ok_no_identicals,
     }
-
-

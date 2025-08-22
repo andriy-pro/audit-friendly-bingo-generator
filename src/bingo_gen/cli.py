@@ -20,7 +20,7 @@ def common_options(
     version: bool = typer.Option(
         False, "--version", help="Show application version and exit", is_eager=True
     ),
-):
+) -> None:
     if version:
         typer.echo(__version__)
         raise typer.Exit(0)
@@ -51,7 +51,7 @@ def run(
     csv_by_position: bool = typer.Option(
         False, "--csv-by-position", help="Include per-position counts in CSV"
     ),
-):
+) -> None:
     """Construct cards and report according to provided configuration."""
     cli_overrides = {}
     if out_cards:
@@ -79,10 +79,10 @@ def run(
         typer.echo(params_hash)
         raise typer.Exit(0)
 
-    R = int(resolved.get("R"))
-    T = int(resolved.get("T"))
-    m = int(resolved.get("m"))
-    n = int(resolved.get("n"))
+    R = int(resolved.get("R") or 0)
+    T = int(resolved.get("T") or 0)
+    m = int(resolved.get("m") or 0)
+    n = int(resolved.get("n") or 0)
     unique_scope = list(resolved.get("unique_scope", []))
     uniformity = str(resolved.get("uniformity", "near"))
     rng_engine = str(resolved.get("seed", {}).get("engine", "py_random"))
@@ -130,6 +130,11 @@ def run(
 
         freqs = report.get("frequencies", {})
         pos = report.get("position_frequencies", {}) if csv_by_position else None
+        # Type safety for mypy
+        if not isinstance(freqs, dict):
+            freqs = {}
+        if pos is not None and not isinstance(pos, dict):
+            pos = None
         emit_summary_csv(
             Path(summary_csv),
             freqs=freqs,
@@ -150,7 +155,7 @@ def verify(
     report_only: bool = typer.Option(
         False, "--report-only", help="Validate only report.json schema"
     ),
-):
+) -> None:
     """Verify produced artifacts. Placeholder for schema checks (future)."""
     typer.echo("Verify subcommand is not fully implemented yet (schema checks TBD).")
     raise typer.Exit(code=0)
@@ -161,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
         app(standalone_mode=True)
         return 0
     except SystemExit as e:
-        return int(e.code)
+        return int(e.code) if e.code is not None else 0
     except Exception as exc:  # pragma: no cover - scaffold safety
         typer.echo(str(exc))
         return 1

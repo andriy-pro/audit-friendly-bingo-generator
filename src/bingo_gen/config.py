@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
 from typing import Any, Dict, Mapping, Tuple
-import hashlib
 
 try:
     import yaml  # type: ignore
@@ -94,12 +94,26 @@ def _collect_env_vars(env: Mapping[str, str]) -> Dict[str, Any]:
             continue
         raw = env[env_key]
         # Type conversions for common keys
-        if cfg_key in {"R", "T", "m", "n", "card_number_start", "build_timeout_sec", "swap_iterations", "parallelism"}:
+        if cfg_key in {
+            "R",
+            "T",
+            "m",
+            "n",
+            "card_number_start",
+            "build_timeout_sec",
+            "swap_iterations",
+            "parallelism",
+        }:
             try:
                 result[cfg_key] = int(raw)
             except ValueError:
                 result[cfg_key] = raw
-        elif cfg_key in {"position_balance", "allow_best_effort", "best_effort_zero", "parallel"}:
+        elif cfg_key in {
+            "position_balance",
+            "allow_best_effort",
+            "best_effort_zero",
+            "parallel",
+        }:
             result[cfg_key] = _parse_bool(raw)
         elif cfg_key == "unique_scope":
             result[cfg_key] = _parse_list(raw)
@@ -125,7 +139,7 @@ def _set_nested(config: Dict[str, Any], dotted_key: str, value: Any) -> None:
 
 
 def _apply_overrides(base: Dict[str, Any], overrides: Dict[str, Any]) -> Dict[str, Any]:
-    merged = json.loads(json.dumps(base))  # deep copy via JSON
+    merged: Dict[str, Any] = json.loads(json.dumps(base))  # deep copy via JSON
     for key, value in overrides.items():
         if "." in key:
             _set_nested(merged, key, value)
@@ -140,12 +154,22 @@ def canonical_json_dumps(data: Any) -> str:
 
 def compute_params_hash(resolved: Mapping[str, Any]) -> str:
     include = {
-        "R", "T", "m", "n",
-        "unique_scope", "uniformity", "position_balance",
-        "bbd_mode", "build_timeout_sec", "swap_iterations",
-        "parallel", "parallelism", "allow_best_effort",
+        "R",
+        "T",
+        "m",
+        "n",
+        "unique_scope",
+        "uniformity",
+        "position_balance",
+        "bbd_mode",
+        "build_timeout_sec",
+        "swap_iterations",
+        "parallel",
+        "parallelism",
+        "allow_best_effort",
         # seed
-        "seed.engine", "seed.value",
+        "seed.engine",
+        "seed.value",
     }
 
     def extract(path: str, source: Mapping[str, Any]) -> Any:
@@ -199,7 +223,11 @@ def resolve_paths(
 
     result = dict(resolved)
     # Determine which keys came from CLI
-    cli_keys = {k for k in cli_overrides.keys() if k in {"out_cards", "out_report", "log_file", "summary_csv"}}
+    cli_keys = {
+        k
+        for k in cli_overrides.keys()
+        if k in {"out_cards", "out_report", "log_file", "summary_csv"}
+    }
 
     for key in ("out_cards", "out_report", "log_file", "summary_csv"):
         value = resolved.get(key)
@@ -242,5 +270,3 @@ def resolve_parameters(
     # Compute params hash from contract subset
     params_hash = compute_params_hash(merged)
     return merged, params_hash, config_path
-
-

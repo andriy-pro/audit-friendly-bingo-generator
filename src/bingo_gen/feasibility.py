@@ -24,7 +24,9 @@ def compute_near_uniform_targets(*, R: int, T: int, m: int, n: int) -> tuple[int
     return base, remainder
 
 
-def check_uniqueness_capacity(*, R: int, T: int, m: int, n: int, unique_scope: list[str]) -> Feasibility:
+def check_uniqueness_capacity(
+    *, R: int, T: int, m: int, n: int, unique_scope: list[str]
+) -> Feasibility:
     scope = sorted(set(unique_scope))
     reasons: List[str] = []
     ok_row = True
@@ -39,5 +41,3 @@ def check_uniqueness_capacity(*, R: int, T: int, m: int, n: int, unique_scope: l
             reasons.append("col_sets capacity exceeded: T*n > C(R,m)")
     feasible = ok_row and ok_col
     return Feasibility(feasible=feasible, reasons=reasons)
-
-

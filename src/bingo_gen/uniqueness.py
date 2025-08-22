@@ -30,5 +30,3 @@ def cards_hash(matrices: Iterable[Sequence[Sequence[int]]]) -> str:
     hashes = [matrix_hash(m) for m in matrices]
     payload = json.dumps(hashes, ensure_ascii=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
-
-

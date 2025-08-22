@@ -36,5 +36,3 @@ def test_near_uniformity_bounds(R, T, m, n):
     assert total == T * m * n
     values = list(freqs.values())
     assert max(values) - min(values) <= 1
-
-

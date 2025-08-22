@@ -96,5 +96,3 @@ def derive_parallel_seed(base_seed: int, index: int, purpose: str) -> int:
     # take first 8 bytes, mask to 63 bits to ensure non-negative
     val = int.from_bytes(digest[:8], byteorder="big") & ((1 << 63) - 1)
     return val
-
-

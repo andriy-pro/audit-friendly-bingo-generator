@@ -25,9 +25,7 @@ def test_mvp_global_counts_match_targets():
 
     R, T, m, n = 20, 8, 2, 5
     target = build_global_frequencies(R=R, T=T, m=m, n=n, mode="near", position_balance=False)
-    cards = build_cards(
-        R=R, T=T, m=m, n=n, uniformity="near", rng_engine="py_random", seed=42
-    )
+    cards = build_cards(R=R, T=T, m=m, n=n, uniformity="near", rng_engine="py_random", seed=42)
     counts = Counter(x for card in cards for row in card for x in row)
     assert sum(counts.values()) == sum(target.values())
     # near-equality check: differences at most 1 per number
@@ -40,5 +38,3 @@ def test_invalid_small_R_raises():
 
     with pytest.raises(ValueError):
         build_cards(R=5, T=1, m=3, n=3, uniformity="near", rng_engine="py_random", seed=1)
-
-

@@ -24,5 +24,3 @@ def test_hashes_stable_and_distinct():
     assert h_a != h_b
     agg = cards_hash([a, b])
     assert agg.startswith("sha256:")
-
-

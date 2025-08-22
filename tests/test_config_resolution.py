@@ -76,5 +76,3 @@ def test_params_hash_contract_stability():
     altered["log_level"] = "DEBUG"
     _, h2, _ = resolve_parameters(config_path_str=None, cli_overrides=altered, env={})
     assert h1 == h2
-
-

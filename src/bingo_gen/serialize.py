@@ -24,7 +24,15 @@ def write_json(path: Path, data: object, *, mkdirs: bool, overwrite: bool) -> No
     path.write_text(text + "\n", encoding="utf-8")
 
 
-def build_run_meta(*, app_version: str, params_hash: str, seed: int, rng_engine: str, parallel: bool, parallelism: int) -> Dict[str, object]:
+def build_run_meta(
+    *,
+    app_version: str,
+    params_hash: str,
+    seed: int,
+    rng_engine: str,
+    parallel: bool,
+    parallelism: int,
+) -> Dict[str, object]:
     return {
         "app_version": app_version,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -41,7 +49,14 @@ def build_run_meta(*, app_version: str, params_hash: str, seed: int, rng_engine:
     }
 
 
-def emit_cards_json(path: Path, *, cards: Sequence[Sequence[Sequence[int]]], run_meta: Dict[str, object], mkdirs: bool, overwrite: bool) -> None:
+def emit_cards_json(
+    path: Path,
+    *,
+    cards: Sequence[Sequence[Sequence[int]]],
+    run_meta: Dict[str, object],
+    mkdirs: bool,
+    overwrite: bool,
+) -> None:
     entries: List[Dict[str, object]] = []
     for idx, matrix in enumerate(cards, start=1):
         entries.append({"id": str(idx), "matrix": matrix, "matrix_hash": matrix_hash(matrix)})
@@ -49,11 +64,20 @@ def emit_cards_json(path: Path, *, cards: Sequence[Sequence[Sequence[int]]], run
     write_json(path, data, mkdirs=mkdirs, overwrite=overwrite)
 
 
-def emit_report_json(path: Path, *, report: Dict[str, object], mkdirs: bool, overwrite: bool) -> None:
+def emit_report_json(
+    path: Path, *, report: Dict[str, object], mkdirs: bool, overwrite: bool
+) -> None:
     write_json(path, report, mkdirs=mkdirs, overwrite=overwrite)
 
 
-def emit_summary_csv(path: Path, *, freqs: Dict[int, int], by_position: Dict[str, Dict[int, int]] | None, mkdirs: bool, overwrite: bool) -> None:
+def emit_summary_csv(
+    path: Path,
+    *,
+    freqs: Dict[int, int],
+    by_position: Dict[str, Dict[int, int]] | None,
+    mkdirs: bool,
+    overwrite: bool,
+) -> None:
     if path.exists() and not overwrite:
         raise FileExistsError(f"Refusing to overwrite existing file without --force: {path}")
     ensure_parent(path, mkdirs=mkdirs)
@@ -69,5 +93,3 @@ def emit_summary_csv(path: Path, *, freqs: Dict[int, int], by_position: Dict[str
                 row = by_position[pos]
                 for num in sorted(row.keys()):
                     writer.writerow([pos, num, row[num]])
-
-
