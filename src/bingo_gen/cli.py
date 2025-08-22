@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 import typer
 
 from .version import __version__
+from .config import resolve_parameters
+from .builder.heuristic import build_cards
+from .verify import verify as verify_artifacts
+from .serialize import build_run_meta, emit_cards_json, emit_report_json
 
 app = typer.Typer(help="Bingo/Tombola card generator CLI")
 
@@ -33,12 +38,76 @@ def run(
     colors: str = typer.Option("auto", "--colors", help="auto|always|never"),
     log_level: str = typer.Option("INFO", "--log-level", help="DEBUG|INFO|WARN|ERROR"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Resolve params and exit"),
+    force: bool = typer.Option(False, "--force", help="Overwrite outputs if they exist"),
+    no_mkdirs: bool = typer.Option(False, "--no-mkdirs", help="Do not create parent directories"),
 ):
-    """Construct cards and report according to provided configuration.
+    """Construct cards and report according to provided configuration."""
+    cli_overrides = {}
+    if out_cards:
+        cli_overrides["out_cards"] = out_cards
+    if out_report:
+        cli_overrides["out_report"] = out_report
+    if log_file:
+        cli_overrides["log_file"] = log_file
+    if colors:
+        cli_overrides["colors"] = colors
+    if log_level:
+        cli_overrides["log_level"] = log_level
 
-    This is a placeholder scaffold. Implementation will follow in subsequent phases.
-    """
-    typer.echo("Run command scaffold. Implementation pending.")
+    resolved, params_hash, cfg_path = resolve_parameters(
+        config_path_str=config, cli_overrides=cli_overrides
+    )
+    if dry_run:
+        typer.echo(params_hash)
+        raise typer.Exit(0)
+
+    R = int(resolved.get("R"))
+    T = int(resolved.get("T"))
+    m = int(resolved.get("m"))
+    n = int(resolved.get("n"))
+    unique_scope = list(resolved.get("unique_scope", []))
+    uniformity = str(resolved.get("uniformity", "near"))
+    rng_engine = str(resolved.get("seed", {}).get("engine", "py_random"))
+    seed_value = int(resolved.get("seed", {}).get("value", 0))
+    position_balance = bool(resolved.get("position_balance", False))
+
+    cards = build_cards(
+        R=R,
+        T=T,
+        m=m,
+        n=n,
+        uniformity=uniformity,
+        rng_engine=rng_engine,
+        seed=seed_value,
+        position_balance=position_balance,
+        unique_scope=unique_scope,
+    )
+    report = verify_artifacts(cards, R=R, m=m, n=n, unique_scope=unique_scope)
+
+    run_meta = build_run_meta(
+        app_version=__version__,
+        params_hash=params_hash,
+        seed=seed_value,
+        rng_engine=rng_engine,
+        parallel=bool(resolved.get("parallel", False)),
+        parallelism=int(resolved.get("parallelism", 1)),
+    )
+    out_cards_path = Path(resolved.get("out_cards", "cards.json"))
+    out_report_path = Path(resolved.get("out_report", "report.json"))
+    emit_cards_json(
+        out_cards_path,
+        cards=cards,
+        run_meta=run_meta,
+        mkdirs=(not no_mkdirs),
+        overwrite=force,
+    )
+    emit_report_json(
+        out_report_path,
+        report=report,
+        mkdirs=(not no_mkdirs),
+        overwrite=force,
+    )
+    typer.echo(f"Wrote {out_cards_path} and {out_report_path}")
     raise typer.Exit(code=0)
 
 
@@ -52,8 +121,8 @@ def verify(
         False, "--report-only", help="Validate only report.json schema"
     ),
 ):
-    """Verify produced artifacts. Placeholder scaffold."""
-    typer.echo("Verify command scaffold. Implementation pending.")
+    """Verify produced artifacts. Placeholder for schema checks (future)."""
+    typer.echo("Verify subcommand is not fully implemented yet (schema checks TBD).")
     raise typer.Exit(code=0)
 
 
