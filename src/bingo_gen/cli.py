@@ -5,8 +5,8 @@ from pathlib import Path
 
 import typer
 
-from .builder.heuristic import build_cards
 from .builder.bibd import build_cards_bibd
+from .builder.heuristic import build_cards
 from .config import resolve_parameters
 from .logging_setup import setup_logging
 from .serialize import build_run_meta, emit_cards_json, emit_report_json
