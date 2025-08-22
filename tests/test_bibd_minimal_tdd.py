@@ -18,5 +18,3 @@ def test_bibd_basic_construction_strict():
         assert all(len(row) == n for row in card)
         for row in card:
             assert len(set(row)) == len(row)
-
-

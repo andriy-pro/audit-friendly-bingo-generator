@@ -53,5 +53,3 @@ def build_cards_bibd(
             matrix.append(row)
         cards.append(matrix)
     return cards
-
-
