@@ -83,6 +83,27 @@ def build_cards(
             rng.shuffle(candidates_master)
             candidates_master.sort(key=lambda x: (-remaining[x], rng.random()))
 
+            # Fast path: if no global uniqueness constraints, do simple greedy fill
+            if not unique_scope:
+                chosen = candidates_master[:need]
+                rng.shuffle(chosen)
+                matrix: List[List[int]] = []
+                k = 0
+                for _i in range(m):
+                    row = chosen[k : k + n]
+                    k += n
+                    # ensure no duplicates within the row
+                    if len(set(row)) != len(row):
+                        success = False
+                        break
+                    matrix.append(row)
+                if not success:
+                    break
+                for x in chosen:
+                    remaining[x] -= 1
+                cards.append(matrix)
+                continue
+
             def choose_row(
                 pool: List[int], anchors: Optional[List[int]]
             ) -> Optional[List[int]]:
