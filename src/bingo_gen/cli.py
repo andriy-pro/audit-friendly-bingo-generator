@@ -5,11 +5,12 @@ from pathlib import Path
 
 import typer
 
-from .version import __version__
-from .config import resolve_parameters
 from .builder.heuristic import build_cards
-from .verify import verify as verify_artifacts
+from .config import resolve_parameters
 from .serialize import build_run_meta, emit_cards_json, emit_report_json
+from .verify import verify as verify_artifacts
+from .version import __version__
+from .logging_setup import setup_logging
 
 app = typer.Typer(help="Bingo/Tombola card generator CLI")
 
@@ -38,8 +39,14 @@ def run(
     colors: str = typer.Option("auto", "--colors", help="auto|always|never"),
     log_level: str = typer.Option("INFO", "--log-level", help="DEBUG|INFO|WARN|ERROR"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Resolve params and exit"),
-    force: bool = typer.Option(False, "--force", help="Overwrite outputs if they exist"),
-    no_mkdirs: bool = typer.Option(False, "--no-mkdirs", help="Do not create parent directories"),
+    force: bool = typer.Option(
+        False, "--force", help="Overwrite outputs if they exist"
+    ),
+    no_mkdirs: bool = typer.Option(
+        False, "--no-mkdirs", help="Do not create parent directories"
+    ),
+    summary_csv: str = typer.Option(None, "--summary-csv", help="Path to summary.csv (optional)"),
+    csv_by_position: bool = typer.Option(False, "--csv-by-position", help="Include per-position counts in CSV"),
 ):
     """Construct cards and report according to provided configuration."""
     cli_overrides = {}
@@ -57,6 +64,13 @@ def run(
     resolved, params_hash, cfg_path = resolve_parameters(
         config_path_str=config, cli_overrides=cli_overrides
     )
+
+    setup_logging(
+        level=str(resolved.get("log_level", "INFO")),
+        log_file=resolved.get("log_file"),
+        json_format=(str(resolved.get("log_format", "text")) == "json"),
+    )
+
     if dry_run:
         typer.echo(params_hash)
         raise typer.Exit(0)
@@ -107,6 +121,11 @@ def run(
         mkdirs=(not no_mkdirs),
         overwrite=force,
     )
+    if summary_csv:
+        from .serialize import emit_summary_csv
+        freqs = report.get("frequencies", {})
+        pos = report.get("position_frequencies", {}) if csv_by_position else None
+        emit_summary_csv(Path(summary_csv), freqs=freqs, by_position=pos, mkdirs=(not no_mkdirs), overwrite=force)
     typer.echo(f"Wrote {out_cards_path} and {out_report_path}")
     raise typer.Exit(code=0)
 
