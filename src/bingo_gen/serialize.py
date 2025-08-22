@@ -18,9 +18,7 @@ def ensure_parent(path: Path, *, mkdirs: bool) -> None:
 
 def write_json(path: Path, data: object, *, mkdirs: bool, overwrite: bool) -> None:
     if path.exists() and not overwrite:
-        raise FileExistsError(
-            f"Refusing to overwrite existing file without --force: {path}"
-        )
+        raise FileExistsError(f"Refusing to overwrite existing file without --force: {path}")
     ensure_parent(path, mkdirs=mkdirs)
     text = json.dumps(data, ensure_ascii=True, sort_keys=True, indent=2)
     path.write_text(text + "\n", encoding="utf-8")
@@ -61,9 +59,7 @@ def emit_cards_json(
 ) -> None:
     entries: List[Dict[str, object]] = []
     for idx, matrix in enumerate(cards, start=1):
-        entries.append(
-            {"id": str(idx), "matrix": matrix, "matrix_hash": matrix_hash(matrix)}
-        )
+        entries.append({"id": str(idx), "matrix": matrix, "matrix_hash": matrix_hash(matrix)})
     data = {
         "run_meta": run_meta,
         "cards": entries,
@@ -87,9 +83,7 @@ def emit_summary_csv(
     overwrite: bool,
 ) -> None:
     if path.exists() and not overwrite:
-        raise FileExistsError(
-            f"Refusing to overwrite existing file without --force: {path}"
-        )
+        raise FileExistsError(f"Refusing to overwrite existing file without --force: {path}")
     ensure_parent(path, mkdirs=mkdirs)
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
