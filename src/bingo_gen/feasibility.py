@@ -14,7 +14,9 @@ class Feasibility:
 def check_uniformity_strict(*, R: int, T: int, m: int, n: int) -> Feasibility:
     P = T * m * n
     ok = (P % R) == 0
-    return Feasibility(feasible=ok, reasons=[] if ok else ["P % R != 0 for strict uniformity"])
+    return Feasibility(
+        feasible=ok, reasons=[] if ok else ["P % R != 0 for strict uniformity"]
+    )
 
 
 def compute_near_uniform_targets(*, R: int, T: int, m: int, n: int) -> tuple[int, int]:

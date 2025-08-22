@@ -6,6 +6,7 @@ from pathlib import Path
 import typer
 
 from .builder.heuristic import build_cards
+from .builder.bibd import build_cards_bibd
 from .config import resolve_parameters
 from .logging_setup import setup_logging
 from .serialize import build_run_meta, emit_cards_json, emit_report_json
@@ -89,17 +90,20 @@ def run(
     seed_value = int(resolved.get("seed", {}).get("value", 0))
     position_balance = bool(resolved.get("position_balance", False))
 
-    cards = build_cards(
-        R=R,
-        T=T,
-        m=m,
-        n=n,
-        uniformity=uniformity,
-        rng_engine=rng_engine,
-        seed=seed_value,
-        position_balance=position_balance,
-        unique_scope=unique_scope,
-    )
+    # Try minimal BIBD-like attempt when feasible; fallback to heuristic
+    cards = build_cards_bibd(R=R, T=T, m=m, n=n, uniformity=uniformity)
+    if cards is None:
+        cards = build_cards(
+            R=R,
+            T=T,
+            m=m,
+            n=n,
+            uniformity=uniformity,
+            rng_engine=rng_engine,
+            seed=seed_value,
+            position_balance=position_balance,
+            unique_scope=unique_scope,
+        )
     report = verify_artifacts(cards, R=R, m=m, n=n, unique_scope=unique_scope)
 
     run_meta = build_run_meta(
