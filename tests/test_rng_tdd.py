@@ -18,5 +18,3 @@ def test_parallel_seed_derivation_stable_and_distinct():
     s0b = derive_parallel_seed(base, 0, "build")
     assert s0 != s1
     assert s0 == s0b
-
-
