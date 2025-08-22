@@ -6,8 +6,8 @@ from pathlib import Path
 import typer
 
 from .builder.bibd import build_cards_bibd
-from .builder.staged import build_cards_staged
 from .builder.heuristic import build_cards
+from .builder.staged import build_cards_staged
 from .config import resolve_parameters
 from .logging_setup import setup_logging
 from .serialize import build_run_meta, emit_cards_json, emit_report_json
@@ -103,7 +103,15 @@ def run(
         ):
             cards = None
     if cards is None:
-        cards = build_cards_staged(R=R, T=T, m=m, n=n, rng_engine=rng_engine, seed=seed_value, unique_scope=unique_scope)
+        cards = build_cards_staged(
+            R=R,
+            T=T,
+            m=m,
+            n=n,
+            rng_engine=rng_engine,
+            seed=seed_value,
+            unique_scope=unique_scope,
+        )
     if cards is None:
         cards = build_cards(
             R=R,
