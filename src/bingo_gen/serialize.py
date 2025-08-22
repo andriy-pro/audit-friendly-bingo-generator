@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import csv
 import json
-import os
+import platform
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Sequence
-import csv
 
-from .uniqueness import matrix_hash, cards_hash
+from .uniqueness import cards_hash, matrix_hash
 
 
 def ensure_parent(path: Path, *, mkdirs: bool) -> None:
@@ -18,7 +18,9 @@ def ensure_parent(path: Path, *, mkdirs: bool) -> None:
 
 def write_json(path: Path, data: object, *, mkdirs: bool, overwrite: bool) -> None:
     if path.exists() and not overwrite:
-        raise FileExistsError(f"Refusing to overwrite existing file without --force: {path}")
+        raise FileExistsError(
+            f"Refusing to overwrite existing file without --force: {path}"
+        )
     ensure_parent(path, mkdirs=mkdirs)
     text = json.dumps(data, ensure_ascii=True, sort_keys=True, indent=2)
     path.write_text(text + "\n", encoding="utf-8")
@@ -37,7 +39,7 @@ def build_run_meta(
         "app_version": app_version,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "python_version": __import__("sys").version.split()[0],
-        "platform": os.uname().sysname.lower(),
+        "platform": platform.system().lower(),
         "git_commit": None,
         "run_id": None,
         "params_hash": params_hash,
@@ -59,8 +61,14 @@ def emit_cards_json(
 ) -> None:
     entries: List[Dict[str, object]] = []
     for idx, matrix in enumerate(cards, start=1):
-        entries.append({"id": str(idx), "matrix": matrix, "matrix_hash": matrix_hash(matrix)})
-    data = {"run_meta": run_meta, "cards": entries, "cards_hash": cards_hash([c for c in cards])}
+        entries.append(
+            {"id": str(idx), "matrix": matrix, "matrix_hash": matrix_hash(matrix)}
+        )
+    data = {
+        "run_meta": run_meta,
+        "cards": entries,
+        "cards_hash": cards_hash([c for c in cards]),
+    }
     write_json(path, data, mkdirs=mkdirs, overwrite=overwrite)
 
 
@@ -79,7 +87,9 @@ def emit_summary_csv(
     overwrite: bool,
 ) -> None:
     if path.exists() and not overwrite:
-        raise FileExistsError(f"Refusing to overwrite existing file without --force: {path}")
+        raise FileExistsError(
+            f"Refusing to overwrite existing file without --force: {path}"
+        )
     ensure_parent(path, mkdirs=mkdirs)
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
