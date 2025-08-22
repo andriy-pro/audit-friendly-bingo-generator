@@ -23,6 +23,27 @@ pcg = [
   "numpy>=1.23,<3",
 ]
 
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_optional = true
+pretty = true
+
+
 [project.scripts]
 bingo-gen = "bingo_gen.cli:main"
 

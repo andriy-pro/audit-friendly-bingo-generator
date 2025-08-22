@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import collections
-
 from hypothesis import given, strategies as st
 
 

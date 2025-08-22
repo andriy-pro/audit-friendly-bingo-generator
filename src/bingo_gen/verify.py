@@ -17,7 +17,7 @@ class UniquenessReport:
 
 
 def compute_frequencies(cards: Sequence[Sequence[Sequence[int]]], R: int) -> Dict[int, int]:
-    counts = Counter()
+    counts: Counter[int] = Counter()
     for card in cards:
         for row in card:
             counts.update(row)

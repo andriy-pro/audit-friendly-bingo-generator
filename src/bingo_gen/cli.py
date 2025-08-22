@@ -7,10 +7,10 @@ import typer
 
 from .builder.heuristic import build_cards
 from .config import resolve_parameters
+from .logging_setup import setup_logging
 from .serialize import build_run_meta, emit_cards_json, emit_report_json
 from .verify import verify as verify_artifacts
 from .version import __version__
-from .logging_setup import setup_logging
 
 app = typer.Typer(help="Bingo/Tombola card generator CLI")
 
@@ -45,8 +45,12 @@ def run(
     no_mkdirs: bool = typer.Option(
         False, "--no-mkdirs", help="Do not create parent directories"
     ),
-    summary_csv: str = typer.Option(None, "--summary-csv", help="Path to summary.csv (optional)"),
-    csv_by_position: bool = typer.Option(False, "--csv-by-position", help="Include per-position counts in CSV"),
+    summary_csv: str = typer.Option(
+        None, "--summary-csv", help="Path to summary.csv (optional)"
+    ),
+    csv_by_position: bool = typer.Option(
+        False, "--csv-by-position", help="Include per-position counts in CSV"
+    ),
 ):
     """Construct cards and report according to provided configuration."""
     cli_overrides = {}
@@ -123,9 +127,16 @@ def run(
     )
     if summary_csv:
         from .serialize import emit_summary_csv
+
         freqs = report.get("frequencies", {})
         pos = report.get("position_frequencies", {}) if csv_by_position else None
-        emit_summary_csv(Path(summary_csv), freqs=freqs, by_position=pos, mkdirs=(not no_mkdirs), overwrite=force)
+        emit_summary_csv(
+            Path(summary_csv),
+            freqs=freqs,
+            by_position=pos,
+            mkdirs=(not no_mkdirs),
+            overwrite=force,
+        )
     typer.echo(f"Wrote {out_cards_path} and {out_report_path}")
     raise typer.Exit(code=0)
 

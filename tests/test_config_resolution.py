@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from bingo_gen.config import resolve_parameters, compute_params_hash, canonical_json_dumps
+from bingo_gen.config import resolve_parameters
 
 
 def test_env_precedence_over_config(tmp_path: Path, monkeypatch):

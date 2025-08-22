@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Sequence
@@ -29,7 +28,7 @@ def build_run_meta(*, app_version: str, params_hash: str, seed: int, rng_engine:
     return {
         "app_version": app_version,
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "python_version": os.sys.version.split()[0],
+        "python_version": __import__("sys").version.split()[0],
         "platform": os.uname().sysname.lower(),
         "git_commit": None,
         "run_id": None,

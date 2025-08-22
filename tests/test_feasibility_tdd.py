@@ -15,8 +15,7 @@ class FeasibilityResult:
 
 
 def theoretical_feasible(R: int, T: int, m: int, n: int, unique_scope: list[str]) -> bool:
-    P = T * m * n
-    # Uniformity strict feasibility check (if P % R == 0) not enforced here; property below will assert equivalence
+    # Uniformity strict feasibility check covered separately
     ok_row = True
     ok_col = True
     if "row_sets" in unique_scope:
