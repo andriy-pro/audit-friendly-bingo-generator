@@ -38,14 +38,28 @@ reproducible runs via a minimal seed.
 
 ### 3.1 CLI
 
+Subcommands:
+
+- `bingo-gen run` — construct cards and reports
+- `bingo-gen verify` — verify produced artifacts
+
+Examples:
+
 ```bash
-bingo-gen \
+# Run with config file (interactive prompts for missing fields)
+bingo-gen run \
   --config config.yaml \
   --out-cards cards.json \
   --out-report report.json \
   --log-file run.log \
   --colors auto \
   --log-level INFO
+
+# Dry-run (plan): resolve parameters, print feasibility, no construction
+bingo-gen run --config config.yaml --dry-run
+
+# Verify artifacts (optionally verify params_hash contract)
+bingo-gen verify --cards cards.json --report report.json --params params.json --strict
 ```
 
 ### 3.2 Config file (JSON or YAML)
@@ -92,6 +106,17 @@ log_file: "run.log"
 out_cards: "cards.json"
 out_report: "report.json"
 summary_csv: "summary.csv" # optional
+
+# ---- Statistics ----
+stats_engine: "wilson_hilferty" # "wilson_hilferty" (default) | "scipy"
+
+# ---- Termination & best-effort ----
+allow_best_effort: false # if true, may emit partial result with violations
+best_effort_zero: false # if true and violations present, exit code may be 0
+
+# ---- Performance ----
+parallel: false # non-deterministic across processes; see notes
+parallelism: 1
 ```
 
 **Interactive prompts** (when fields are missing):
@@ -121,6 +146,50 @@ Let `P = T * m * n` be the total number of placed numbers.
 
   - The generator validates these bounds and explains infeasible configurations
     clearly.
+
+### 3.4 Parameter Resolution & Environment Variables
+
+- Precedence: CLI > ENV > config file > built-in defaults.
+- Environment variables use the `BINGO_GEN_` prefix and map to config keys by
+  upper-casing and replacing dots with underscores, e.g. `BINGO_GEN_R=75`,
+  `BINGO_GEN_UNIQUE_SCOPE=row_sets,col_sets`, `BINGO_GEN_LOG_LEVEL=INFO`.
+- Booleans accept `true/false/1/0/yes/no`. Lists accept comma-separated values.
+
+### 3.5 Path Policy & I/O Behavior
+
+- Paths provided in a config file are resolved relative to that config file’s
+  directory. Paths provided via CLI flags are resolved relative to the current
+  working directory (CWD).
+- Output behavior:
+  - No overwrite by default. Use `--force` to overwrite existing files.
+  - Parent directories are auto-created. Use `--no-mkdirs` to disable.
+  - Optional `--out-dir` can be used with default filenames.
+
+### 3.6 Params Hash Contract
+
+`params_hash` is a `sha256` over a canonical JSON representation (sorted keys,
+no insignificant fields) of the subset of resolved parameters that strictly
+influence construction results. Unless explicitly stated otherwise, file paths
+and log settings are excluded.
+
+Included fields (contract):
+
+- `R`, `T`, `m`, `n`
+- `unique_scope` (normalized: de-duplicated and sorted list)
+- `uniformity`, `position_balance`
+- `seed.value`, `seed.engine`
+- `bbd_mode`, `build_timeout_sec`, `swap_iterations`
+- `parallel` (if enabled) and `parallelism` value
+- `allow_best_effort` (affects termination criteria)
+
+Excluded (do not affect combinatorial output):
+
+- Output/input file paths, log file, log level/format, color settings
+
+Notes:
+
+- The canonical JSON uses stable key ordering and standard number formatting.
+- The exact contract is versioned; any change will bump `run_meta.app_version`.
 
 ## 4) Generation Workflow
 
@@ -164,18 +233,27 @@ Check and assert all active constraints:
 ```json
 {
   "run_meta": {
-    "version": "1.0.0",
+    "app_version": "1.0.0",
     "timestamp": "2025-08-22T10:00:00Z",
-    "params_hash": "sha256:...",
+    "python_version": "3.11.9",
+    "platform": "linux-x86_64",
+    "git_commit": "abc1234",      // optional if available
+    "run_id": "4e0c7d2e-...",
+    "params_hash": "sha256:...",  // over resolved params per contract
     "seed": 20250824,
-    "engine": "py_random"
+    "rng_engine": "py_random",     // or "numpy_pcg64"
+    "hash_algorithm": "sha256",
+    "parallel": false,
+    "parallelism": 1
   },
   "cards": [
     {
-      "id": "1",                 // "uuid" or sequential number as string
-      "matrix": [[12,35,7,64],[...],[...]]
+      "id": "1",                          // "uuid" or sequential number as string
+      "matrix": [[12,35,7,64],[...],[...]],
+      "matrix_hash": "sha256:..."          // hash of canonical JSON of matrix
     }
-  ]
+  ],
+  "cards_hash": "sha256:..."
 }
 ```
 
@@ -184,28 +262,56 @@ Check and assert all active constraints:
 ```json
 {
   "frequencies": { "1": 2, "2": 2, "...": "..." },
-  "position_frequencies": { "(0,0)": {"1":0, "2":1, ...}, "...": "..." },
+  "position_frequencies": {
+    "(0,0)": { "1": 0, "2": 1, "...": 0 },
+    "...": "..."
+  },
   "uniqueness": {
     "row_sets_checked": true,
     "col_sets_checked": true,
     "row_set_collisions": 0,
-    "col_set_collisions": 0
+    "col_set_collisions": 0,
+    "set_representation": "sorted_tuple" // JSON emits sets as sorted tuples
   },
   "uniformity": {
     "mode": "strict",
     "max_minus_min": 0
   },
   "tests": {
+    "alpha": 0.05,
+    "engine": "wilson_hilferty", // allowed: "wilson_hilferty" | "scipy"
     "chi2_global": { "stat": 12.34, "df": 74, "p_value": 0.999 },
-    "chi2_by_column": [ /* one entry per column */ ],
-    "chi2_by_row": [ /* one entry per row */ ]
+    "chi2_by_column": [
+      /* one entry per column */
+    ],
+    "chi2_by_row": [
+      /* one entry per row */
+    ]
   },
+  "build_metrics": {
+    "swaps": 12345,
+    "iterations": 20000,
+    "timeouts_triggered": false,
+    "cards_rebuilt": 12,
+    "collisions_resolved": 87,
+    "elapsed_sec": 42.5
+  },
+  "best_effort": false,
   "warnings": [],
   "notes": "All constraints satisfied."
 }
 ```
 
-### 5.3 Optional `summary.csv`
+### 5.3 Serialization Conventions
+
+- Row/column combinations are conceptually sets; for JSON compatibility they are
+  serialized as sorted tuples (ascending order) wherever included (e.g., in
+  collision diagnostics). This ensures stable ordering, Schema compatibility,
+  and reproducibility.
+- Internal fast lookups use `frozenset` hashed containers; report does not dump
+  the full uniqueness index by default to keep size manageable.
+
+### 5.4 Optional `summary.csv`
 
 - Flat table aggregating total frequency per number and (optionally) by
   position.
@@ -231,13 +337,26 @@ Check and assert all active constraints:
 - Every run logs: config echo, `params_hash`, chosen seed/engine, timing,
   outcome, and a short summary of constraints satisfied/failed.
 
+Security note:
+
+- The tool does not execute arbitrary code from configuration files; only data
+  is parsed (YAML/JSON). No template rendering or dynamic evaluation occurs.
+
 ## 7) Exit Codes
 
 - `0` — success; all constraints satisfied.
 - `2` — invalid configuration (feasibility pre-check failed).
-- `3` — construction failed within timeout/iterations.
+- `3` — construction failed within timeout/iterations or best-effort emitted
+  with violations.
 - `4` — verification failed (post-check found violations).
 - `5` — I/O or serialization error.
+
+Notes on best-effort:
+
+- If `--allow-best-effort` is set and violations remain, exit code defaults to
+  `3` while emitting artifacts with `"best_effort": true` in `report.json`.
+- If `--best-effort-zero` is additionally set, exit code may be `0` despite
+  violations; CI users should rely on `report.json.best_effort` for gating.
 
 ## 8) Minimal Seed Procedure (extensible)
 
@@ -248,6 +367,15 @@ Check and assert all active constraints:
 - **Future-proofing**: design allows later upgrade to multi-party commit-reveal
   without breaking the current interface (e.g.,
   `seed: { mode: "commit_reveal", ... }`).
+
+### 8.1 Parallel seed scheme (non-deterministic warning)
+
+- When `--parallel` is enabled, per-card seeds may be derived as
+  `seed_i = sha256(run_seed || card_index || "build")` to reduce inter-card
+  correlations.
+- Despite per-card seeding, final outputs may still differ between runs due to
+  scheduling and non-deterministic swap ordering. For audit-critical runs,
+  prefer single-threaded mode.
 
 ## 9) Constraint Coherence & Non-duplication
 
@@ -282,17 +410,34 @@ out_report: report.json
 
 ### 10.2 Run with interactive prompts
 
-```bash
-bingo-gen --config missing.yaml
+````bash
+bingo-gen run --config missing.yaml
 # Prompts will ask for any missing fields with colored hints and validation.
-```
+
+### 10.3 Verify-only example
+
+```bash
+# Verify artifacts strictly (fail on any deviation)
+bingo-gen verify --cards cards.json --report report.json --strict
+
+# Verify and also check params contract against a saved params.json
+bingo-gen verify --cards cards.json --report report.json --params params.json --strict
+````
 
 ## 11) Tests & Verification
 
-- Built-in verifier reruns all checks on produced artifacts
-  (`--verify-only cards.json --report report.json`).
+- Built-in verifier reruns all checks on produced artifacts via the `verify`
+  subcommand (see CLI examples).
 - Property checks (dev): determinism given the same seed; invariants for
   duplicates & uniqueness; uniformity bounds.
+
+### 11.1 JSON Schemas
+
+- Provide JSON Schemas for `cards.json` and `report.json` under
+  `docs/schemas/cards.schema.json` and `docs/schemas/report.schema.json`.
+- Schemas specify required/optional fields, types, and enums (`tests.engine`).
+- `bingo-gen verify --report-only` may validate only `report.json` against the
+  schema without recomputing checks.
 
 ## 12) Performance Notes
 
@@ -301,8 +446,22 @@ bingo-gen --config missing.yaml
   iterations.
 - Tune `swap_iterations`, `build_timeout_sec`. If needed, disable
   `position_balance` to ease construction.
+- Parallel mode (`--parallel`) may improve throughput but is not guaranteed to
+  be bit-deterministic across runs/platforms due to scheduling effects; use with
+  caution for audit-critical scenarios.
 
 ---
+
+## Versioning Policy
+
+- Semantic Versioning (SemVer) is used for `app_version`.
+- Breaking changes include (non-exhaustive):
+  - Changes to the `params_hash` contract or its included fields
+  - Backward-incompatible updates to JSON Schemas of `cards.json` or
+    `report.json`
+  - Change of default RNG engine
+- Contract updates result in a new major version; minor versions may add fields
+  that are explicitly optional in Schemas.
 
 ## Reasoning & Design Notes
 
