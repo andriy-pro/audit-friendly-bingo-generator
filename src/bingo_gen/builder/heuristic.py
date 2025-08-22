@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Set, Optional
 import itertools
+from typing import List, Optional, Set, Tuple
 
 from ..layout import build_global_frequencies
 from ..rng import create_rng, derive_parallel_seed
-from ..uniqueness import row_sets_of_card, col_sets_of_card, matrix_hash
+from ..uniqueness import col_sets_of_card, matrix_hash, row_sets_of_card
 
 
 def build_cards(
@@ -30,7 +30,9 @@ def build_cards(
         raise ValueError("R must be >= m*n to avoid duplicates within a card")
 
     unique_scope = sorted(set(unique_scope or []))
-    target_freqs = build_global_frequencies(R=R, T=T, m=m, n=n, mode=uniformity, position_balance=position_balance)
+    target_freqs = build_global_frequencies(
+        R=R, T=T, m=m, n=n, mode=uniformity, position_balance=position_balance
+    )
     numbers = list(range(1, R + 1))
 
     for attempt in range(max_attempts):
@@ -129,5 +131,3 @@ def build_cards(
             return cards
 
     raise RuntimeError("Heuristic MVP failed to construct within attempts")
-
-
