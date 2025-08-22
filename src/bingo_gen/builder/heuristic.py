@@ -38,9 +38,7 @@ def build_cards(
     def horizontal_consecutive_penalty(arr: List[int]) -> int:
         return sum(1 for a, b in zip(arr, arr[1:]) if abs(a - b) == 1)
 
-    def order_row_min_consecutive(
-        row: List[int], anchors: Optional[List[int]], rng
-    ) -> List[int]:
+    def order_row_min_consecutive(row: List[int], anchors: Optional[List[int]], rng) -> List[int]:
         # Try multiple shuffles and keep the one with the smallest penalty combining horizontal and vertical (to anchors)
         best = row[:]
         rng.shuffle(best)
@@ -51,9 +49,7 @@ def build_cards(
             score = horizontal_consecutive_penalty(candidate)
             if anchors is not None:
                 score += sum(
-                    1
-                    for j, a in enumerate(anchors)
-                    if a is not None and abs(candidate[j] - a) == 1
+                    1 for j, a in enumerate(anchors) if a is not None and abs(candidate[j] - a) == 1
                 )
             if score < best_score:
                 best_score = score
@@ -104,9 +100,7 @@ def build_cards(
                 cards.append(matrix)
                 continue
 
-            def choose_row(
-                pool: List[int], anchors: Optional[List[int]]
-            ) -> Optional[List[int]]:
+            def choose_row(pool: List[int], anchors: Optional[List[int]]) -> Optional[List[int]]:
                 # Sample candidate sets from top-K pool and pick minimal-penalty ordering
                 if len(pool) < n:
                     return None
@@ -119,10 +113,7 @@ def build_cards(
                     cand = rng.sample(top, n)
                     if len(set(cand)) != n:
                         continue
-                    if (
-                        "row_sets" in unique_scope
-                        and tuple(sorted(cand)) in seen_row_sets
-                    ):
+                    if "row_sets" in unique_scope and tuple(sorted(cand)) in seen_row_sets:
                         continue
                     ordered = order_row_min_consecutive(cand, anchors, rng)
                     score = horizontal_consecutive_penalty(ordered)
@@ -143,10 +134,7 @@ def build_cards(
                         row = pool[i : i + n]
                         if len(set(row)) != n:
                             continue
-                        if (
-                            "row_sets" in unique_scope
-                            and tuple(sorted(row)) in seen_row_sets
-                        ):
+                        if "row_sets" in unique_scope and tuple(sorted(row)) in seen_row_sets:
                             continue
                         picked = order_row_min_consecutive(row, anchors, rng)
                         break
@@ -162,9 +150,7 @@ def build_cards(
                 # Build rows sequentially with anchors to reduce vertical adjacency
                 for r_idx in range(m):
                     pool = [x for x in candidates if x not in used_in_card]
-                    anchors_for_row: Optional[List[int]] = (
-                        None if r_idx == 0 else matrix[0]
-                    )
+                    anchors_for_row: Optional[List[int]] = None if r_idx == 0 else matrix[0]
                     row = choose_row(pool, anchors_for_row)
                     if row is None:
                         break
@@ -186,9 +172,7 @@ def build_cards(
                             cols_ok = True
                             for j in range(n):
                                 col_vals = [anchors[j]]
-                                for combo_idx, (r_idx, base, _perms) in enumerate(
-                                    row_perms
-                                ):
+                                for combo_idx, (r_idx, base, _perms) in enumerate(row_perms):
                                     perm = perm_combo[combo_idx]
                                     col_vals.append(base[perm[j]])
                                 cs = tuple(sorted(col_vals))
@@ -208,13 +192,9 @@ def build_cards(
                     # Global uniqueness checks
                     card_rows = row_sets_of_card(matrix)
                     card_cols = col_sets_of_card(matrix)
-                    if "row_sets" in unique_scope and any(
-                        rs in seen_row_sets for rs in card_rows
-                    ):
+                    if "row_sets" in unique_scope and any(rs in seen_row_sets for rs in card_rows):
                         continue
-                    if "col_sets" in unique_scope and any(
-                        cs in seen_col_sets for cs in card_cols
-                    ):
+                    if "col_sets" in unique_scope and any(cs in seen_col_sets for cs in card_cols):
                         continue
                     h = matrix_hash(matrix)
                     if h in seen_card_hashes:

@@ -10,7 +10,9 @@ def no_adjacent(seq):
 
 def test_staged_small_scenario():
     R, T, m, n = 20, 5, 2, 3
-    cards = build_cards_staged(R=R, T=T, m=m, n=n, rng_engine="py_random", seed=123, unique_scope=["row_sets", "col_sets"])
+    cards = build_cards_staged(
+        R=R, T=T, m=m, n=n, rng_engine="py_random", seed=123, unique_scope=["row_sets", "col_sets"]
+    )
     assert cards is None or len(cards) == T
     if cards:
         # horizontal no-adjacent
@@ -27,5 +29,3 @@ def test_staged_small_scenario():
             for cs in col_sets_of_card(card):
                 assert cs not in seen_c
                 seen_c.add(cs)
-
-
