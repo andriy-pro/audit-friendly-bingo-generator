@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bingo-gen"
+description = "Deterministic, audit-friendly Bingo/Tombola card generator CLI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Project Contributors" }
+]
+dynamic = ["version"]
+dependencies = [
+  "typer>=0.9.0",
+  "PyYAML>=6.0",
+  "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+pcg = [
+  "numpy>=1.23,<3",
+]
+
+[project.scripts]
+bingo-gen = "bingo_gen.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "bingo_gen.version.__version__" }
+
+[tool.setuptools.package-data]
+bingo_gen = []
