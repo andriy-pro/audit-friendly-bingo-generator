@@ -5,9 +5,7 @@ from pathlib import Path
 
 import typer
 
-from .builder.bibd import build_cards_bibd
 from .builder.heuristic import build_cards
-from .builder.staged import build_cards_staged
 from .config import resolve_parameters
 from .logging_setup import setup_logging
 from .serialize import build_run_meta, emit_cards_json, emit_report_json
@@ -31,16 +29,22 @@ def common_options(
 @app.command()
 def run(
     config: str = typer.Option(
-        None, "--config", help="Path to config file (YAML/JSON)"
+        None,
+        "--config",
+        help="Path to config file (YAML/JSON)",
     ),
-    out_cards: str = typer.Option(None, "--out-cards", help="cards.json output path"),
+    out_cards: str = typer.Option(
+        None, "--out-cards", help="cards.json output path"
+    ),
     out_report: str = typer.Option(
         None, "--out-report", help="report.json output path"
     ),
     log_file: str = typer.Option(None, "--log-file", help="Log file path"),
     colors: str = typer.Option("auto", "--colors", help="auto|always|never"),
     log_level: str = typer.Option("INFO", "--log-level", help="DEBUG|INFO|WARN|ERROR"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Resolve params and exit"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Resolve params and exit"
+    ),
     force: bool = typer.Option(
         False, "--force", help="Overwrite outputs if they exist"
     ),
@@ -91,54 +95,22 @@ def run(
     seed_value = int(resolved.get("seed", {}).get("value", 0))
     position_balance = bool(resolved.get("position_balance", False))
 
-    # Try minimal BIBD-like attempt when feasible; fallback to staged builder; then heuristic
-    cards = build_cards_bibd(R=R, T=T, m=m, n=n, uniformity=uniformity)
-    if cards is not None:
-        # Validate BIBD result against uniqueness; fallback if violations found
-        pre_report = verify_artifacts(cards, R=R, m=m, n=n, unique_scope=unique_scope)
-        uniqueness_data = (
-            pre_report.get("uniqueness", {}) if isinstance(pre_report, dict) else {}
-        )
-        row_collisions = (
-            uniqueness_data.get("row_set_collisions", 0)
-            if isinstance(uniqueness_data, dict)
-            else 0
-        )
-        col_collisions = (
-            uniqueness_data.get("col_set_collisions", 0)
-            if isinstance(uniqueness_data, dict)
-            else 0
-        )
-        no_identical = (
-            pre_report.get("ok_no_identical_cards")
-            if isinstance(pre_report, dict)
-            else True
-        )
-        if row_collisions > 0 or col_collisions > 0 or (no_identical is False):
-            cards = None
+    # Use only heuristic builder for simplicity and testing
+    cards = build_cards(
+        R=R,
+        T=T,
+        m=m,
+        n=n,
+        uniformity=uniformity,
+        rng_engine=rng_engine,
+        seed=seed_value,
+        position_balance=position_balance,
+        unique_scope=unique_scope,
+        max_attempts=1000,
+    )
     if cards is None:
-        cards = build_cards_staged(
-            R=R,
-            T=T,
-            m=m,
-            n=n,
-            rng_engine=rng_engine,
-            seed=seed_value,
-            unique_scope=unique_scope,
-        )
-    if cards is None:
-        cards = build_cards(
-            R=R,
-            T=T,
-            m=m,
-            n=n,
-            uniformity=uniformity,
-            rng_engine=rng_engine,
-            seed=seed_value,
-            position_balance=position_balance,
-            unique_scope=unique_scope,
-            max_attempts=1000,
-        )
+        raise RuntimeError("Heuristic builder failed to construct cards")
+
     report = verify_artifacts(cards, R=R, m=m, n=n, unique_scope=unique_scope)
 
     run_meta = build_run_meta(

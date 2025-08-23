@@ -168,9 +168,7 @@ def build_cards_staged(
     unique_scope: List[str],
 ) -> Optional[List[List[List[int]]]]:
     pool_size = T * m
-    pool = generate_row_sets_pool(
-        R=R, n=n, pool_size=pool_size, rng_engine=rng_engine, seed=seed
-    )
+    pool = generate_row_sets_pool(R=R, n=n, pool_size=pool_size, rng_engine=rng_engine, seed=seed)
     if len(pool) < pool_size:
         return None
     cards = pack_cards_from_pool(
