@@ -86,11 +86,17 @@ def run(
     if cards is not None:
         # Validate BIBD result against uniqueness; fallback if violations found
         pre_report = verify_artifacts(cards, R=R, m=m, n=n, unique_scope=unique_scope)
-        if (
-            (pre_report.get("uniqueness", {}).get("row_set_collisions", 0) > 0)
-            or (pre_report.get("uniqueness", {}).get("col_set_collisions", 0) > 0)
-            or (pre_report.get("ok_no_identical_cards") is False)
-        ):
+        uniqueness_data = pre_report.get("uniqueness", {}) if isinstance(pre_report, dict) else {}
+        row_collisions = (
+            uniqueness_data.get("row_set_collisions", 0) if isinstance(uniqueness_data, dict) else 0
+        )
+        col_collisions = (
+            uniqueness_data.get("col_set_collisions", 0) if isinstance(uniqueness_data, dict) else 0
+        )
+        no_identical = (
+            pre_report.get("ok_no_identical_cards") if isinstance(pre_report, dict) else True
+        )
+        if row_collisions > 0 or col_collisions > 0 or (no_identical is False):
             cards = None
     if cards is None:
         cards = build_cards_staged(

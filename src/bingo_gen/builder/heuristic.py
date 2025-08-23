@@ -38,14 +38,16 @@ def build_cards(
     def horizontal_consecutive_penalty(arr: List[int]) -> int:
         return sum(1 for a, b in zip(arr, arr[1:]) if abs(a - b) == 1)
 
-    def order_row_min_consecutive(row: List[int], anchors: Optional[List[int]], rng) -> List[int]:
+    def order_row_min_consecutive(
+        row: List[int], anchors: Optional[List[int]], rng: object
+    ) -> List[int]:
         # Try multiple shuffles and keep the one with the smallest penalty combining horizontal and vertical (to anchors)
         best = row[:]
-        rng.shuffle(best)
+        rng.shuffle(best)  # type: ignore
         best_score = 10**9
         for _ in range(50):
             candidate = row[:]
-            rng.shuffle(candidate)
+            rng.shuffle(candidate)  # type: ignore
             score = horizontal_consecutive_penalty(candidate)
             if anchors is not None:
                 score += sum(
@@ -144,25 +146,25 @@ def build_cards(
             card_built = False
             snapshot_remaining = remaining.copy()
             for card_try in range(200):
-                matrix: List[List[int]] = []
+                card_matrix: List[List[int]] = []
                 used_in_card: Set[int] = set()
                 candidates = candidates_master[:]
                 # Build rows sequentially with anchors to reduce vertical adjacency
                 for r_idx in range(m):
                     pool = [x for x in candidates if x not in used_in_card]
-                    anchors_for_row: Optional[List[int]] = None if r_idx == 0 else matrix[0]
-                    row = choose_row(pool, anchors_for_row)
-                    if row is None:
+                    anchors_for_row: Optional[List[int]] = None if r_idx == 0 else card_matrix[0]
+                    selected_row: Optional[List[int]] = choose_row(pool, anchors_for_row)
+                    if selected_row is None:
                         break
-                    matrix.append(row)
-                    used_in_card.update(row)
+                    card_matrix.append(selected_row)
+                    used_in_card.update(selected_row)
                 else:
                     # Adjust columns to avoid col_set collisions
                     if m >= 2 and "col_sets" in unique_scope:
-                        anchors = matrix[0]
+                        anchors = card_matrix[0]
                         row_perms = []
                         for r_idx in range(1, m):
-                            base = matrix[r_idx]
+                            base = card_matrix[r_idx]
                             perms = list(itertools.permutations(range(n)))
                             if len(perms) > 120:
                                 perms = perms[:120]
@@ -187,23 +189,23 @@ def build_cards(
                             continue
                         for combo_idx, (r_idx, base, _) in enumerate(row_perms):
                             perm = assigned[combo_idx]
-                            matrix[r_idx] = [base[perm[j]] for j in range(n)]
+                            card_matrix[r_idx] = [base[perm[j]] for j in range(n)]
 
                     # Global uniqueness checks
-                    card_rows = row_sets_of_card(matrix)
-                    card_cols = col_sets_of_card(matrix)
+                    card_rows = row_sets_of_card(card_matrix)
+                    card_cols = col_sets_of_card(card_matrix)
                     if "row_sets" in unique_scope and any(rs in seen_row_sets for rs in card_rows):
                         continue
                     if "col_sets" in unique_scope and any(cs in seen_col_sets for cs in card_cols):
                         continue
-                    h = matrix_hash(matrix)
+                    h = matrix_hash(card_matrix)
                     if h in seen_card_hashes:
                         continue
 
                     # Commit this card
                     for x in used_in_card:
                         remaining[x] -= 1
-                    cards.append(matrix)
+                    cards.append(card_matrix)
                     if "row_sets" in unique_scope:
                         seen_row_sets.update(card_rows)
                     if "col_sets" in unique_scope:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Dict, List, Optional, Sequence, Set, Tuple
+from typing import List, Optional, Sequence, Set, Tuple
 
 from ..rng import create_rng
 from ..uniqueness import col_sets_of_card, matrix_hash
@@ -13,7 +13,13 @@ def has_consecutive(values: Sequence[int]) -> bool:
 
 
 def generate_row_sets_pool(
-    *, R: int, n: int, pool_size: int, rng_engine: str, seed: int, max_tries: int = 2_000_000
+    *,
+    R: int,
+    n: int,
+    pool_size: int,
+    rng_engine: str,
+    seed: int,
+    max_tries: int = 2_000_000,
 ) -> List[Tuple[int, ...]]:
     """Generate a pool of unique row-sets (size n) without consecutive numbers.
 
@@ -36,16 +42,16 @@ def generate_row_sets_pool(
     return pool
 
 
-def order_row_min_consecutive(row_set: Tuple[int, ...], rng) -> List[int]:
+def order_row_min_consecutive(row_set: Tuple[int, ...], rng: object) -> List[int]:
     def h_pen(arr: List[int]) -> int:
         return sum(1 for a, b in zip(arr, arr[1:]) if abs(a - b) == 1)
 
     best = list(row_set)
-    rng.shuffle(best)
+    rng.shuffle(best)  # type: ignore
     best_score = 10**9
     for _ in range(24):
         cand = list(row_set)
-        rng.shuffle(cand)
+        rng.shuffle(cand)  # type: ignore
         score = h_pen(cand)
         if score < best_score:
             best = cand[:]
@@ -72,7 +78,6 @@ def pack_cards_from_pool(
     seen_col_sets: Set[Tuple[int, ...]] = set()
     seen_card_hashes: Set[str] = set()
     cards: List[List[List[int]]] = []
-    numbers = set(range(1, R + 1))
 
     for _t in range(T):
         success = False
@@ -82,7 +87,7 @@ def pack_cards_from_pool(
             used_nums: Set[int] = set()
             # randomized order of candidates
             shuffled = list(available)
-            rng.shuffle(shuffled)
+            rng.shuffle(shuffled)  # type: ignore
             for rs in shuffled:
                 if used_nums.isdisjoint(rs):
                     chosen.append(rs)
@@ -110,7 +115,9 @@ def pack_cards_from_pool(
                 for perm in itertools.permutations(base):
                     cols = []
                     for j in range(n):
-                        col_vals = [matrix[r][j] for r in range(len(matrix))] + [perm[j]]
+                        col_vals = [matrix[r][j] for r in range(len(matrix))] + [
+                            perm[j]
+                        ]
                         cols.append(col_vals)
                     if not all(vertical_ok(cv) for cv in cols):
                         continue
@@ -151,10 +158,19 @@ def pack_cards_from_pool(
 
 
 def build_cards_staged(
-    *, R: int, T: int, m: int, n: int, rng_engine: str, seed: int, unique_scope: List[str]
+    *,
+    R: int,
+    T: int,
+    m: int,
+    n: int,
+    rng_engine: str,
+    seed: int,
+    unique_scope: List[str],
 ) -> Optional[List[List[List[int]]]]:
     pool_size = T * m
-    pool = generate_row_sets_pool(R=R, n=n, pool_size=pool_size, rng_engine=rng_engine, seed=seed)
+    pool = generate_row_sets_pool(
+        R=R, n=n, pool_size=pool_size, rng_engine=rng_engine, seed=seed
+    )
     if len(pool) < pool_size:
         return None
     cards = pack_cards_from_pool(
