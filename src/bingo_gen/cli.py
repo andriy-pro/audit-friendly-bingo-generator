@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 import typer
 
-from .builder.heuristic import build_cards
+from .core import UniversalCardBuilder, BuildParams
 from .config import resolve_parameters
 from .logging_setup import setup_logging
 from .serialize import build_run_meta, emit_cards_json, emit_report_json
@@ -33,28 +34,30 @@ def run(
         "--config",
         help="Path to config file (YAML/JSON)",
     ),
-    out_cards: str = typer.Option(None, "--out-cards", help="cards.json output path"),
-    out_report: str = typer.Option(
-        None, "--out-report", help="report.json output path"
+    profile: str = typer.Option(
+        "default", "--profile", help="Generation profile: default|fast|optimal"
     ),
+    out_cards: str = typer.Option(None, "--out-cards", help="cards.json output path"),
+    out_report: str = typer.Option(None, "--out-report", help="report.json output path"),
     log_file: str = typer.Option(None, "--log-file", help="Log file path"),
     colors: str = typer.Option("auto", "--colors", help="auto|always|never"),
     log_level: str = typer.Option("INFO", "--log-level", help="DEBUG|INFO|WARN|ERROR"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Resolve params and exit"),
-    force: bool = typer.Option(
-        False, "--force", help="Overwrite outputs if they exist"
-    ),
-    no_mkdirs: bool = typer.Option(
-        False, "--no-mkdirs", help="Do not create parent directories"
-    ),
-    summary_csv: str = typer.Option(
-        None, "--summary-csv", help="Path to summary.csv (optional)"
-    ),
+    force: bool = typer.Option(False, "--force", help="Overwrite outputs if they exist"),
+    no_mkdirs: bool = typer.Option(False, "--no-mkdirs", help="Do not create parent directories"),
+    summary_csv: str = typer.Option(None, "--summary-csv", help="Path to summary.csv (optional)"),
     csv_by_position: bool = typer.Option(
         False, "--csv-by-position", help="Include per-position counts in CSV"
     ),
 ) -> None:
     """Construct cards and report according to provided configuration."""
+
+    # Validate profile
+    valid_profiles = ["default", "fast", "optimal"]
+    if profile not in valid_profiles:
+        typer.echo(f"Invalid profile: {profile}. Valid profiles: {', '.join(valid_profiles)}")
+        raise typer.Exit(1)
+
     cli_overrides = {}
     if out_cards:
         cli_overrides["out_cards"] = out_cards
@@ -78,9 +81,11 @@ def run(
     )
 
     if dry_run:
-        typer.echo(params_hash)
+        typer.echo(f"Profile: {profile}")
+        typer.echo(f"Params hash: {params_hash}")
         raise typer.Exit(0)
 
+    # Extract parameters
     R = int(resolved.get("R") or 0)
     T = int(resolved.get("T") or 0)
     m = int(resolved.get("m") or 0)
@@ -91,24 +96,37 @@ def run(
     seed_value = int(resolved.get("seed", {}).get("value", 0))
     position_balance = bool(resolved.get("position_balance", False))
 
-    # Use only heuristic builder for simplicity and testing
-    cards = build_cards(
+    # Create build parameters
+    build_params = BuildParams(
         R=R,
         T=T,
         m=m,
         n=n,
         uniformity=uniformity,
-        rng_engine=rng_engine,
-        seed=seed_value,
-        position_balance=position_balance,
         unique_scope=unique_scope,
-        max_attempts=1000,
+        seed=seed_value,
+        rng_engine=rng_engine,
+        position_balance=position_balance,
+        strategy=profile,
     )
-    if cards is None:
-        raise RuntimeError("Heuristic builder failed to construct cards")
 
-    report = verify_artifacts(cards, R=R, m=m, n=n, unique_scope=unique_scope)
+    # Build cards using universal builder
+    typer.echo(f"Using {profile} generation strategy...")
+    start_time = time.time()
 
+    builder = UniversalCardBuilder(strategy=profile)
+    result = builder.build(build_params)
+
+    # Update metrics with actual time
+    result.metrics.total_time = time.time() - start_time
+
+    typer.echo(f"Generated {len(result.cards)} cards in {result.metrics.total_time:.2f}s")
+    typer.echo(f"Average attempts per card: {result.metrics.attempts_per_card:.1f}")
+
+    # Verify artifacts
+    report = verify_artifacts(result.cards, R=R, m=m, n=n, unique_scope=unique_scope)
+
+    # Build run metadata
     run_meta = build_run_meta(
         app_version=__version__,
         params_hash=params_hash,
@@ -117,31 +135,39 @@ def run(
         parallel=bool(resolved.get("parallel", False)),
         parallelism=int(resolved.get("parallelism", 1)),
     )
+
+    # Output files
     out_cards_path = Path(resolved.get("out_cards", "cards.json"))
     out_report_path = Path(resolved.get("out_report", "report.json"))
+
     emit_cards_json(
         out_cards_path,
-        cards=cards,
+        cards=result.cards,
         run_meta=run_meta,
         mkdirs=(not no_mkdirs),
         overwrite=force,
     )
+
     emit_report_json(
         out_report_path,
         report=report,
         mkdirs=(not no_mkdirs),
         overwrite=force,
     )
+
+    # Optional CSV summary
     if summary_csv:
         from .serialize import emit_summary_csv
 
         freqs = report.get("frequencies", {})
         pos = report.get("position_frequencies", {}) if csv_by_position else None
+
         # Type safety for mypy
         if not isinstance(freqs, dict):
             freqs = {}
         if pos is not None and not isinstance(pos, dict):
             pos = None
+
         emit_summary_csv(
             Path(summary_csv),
             freqs=freqs,
@@ -149,7 +175,13 @@ def run(
             mkdirs=(not no_mkdirs),
             overwrite=force,
         )
-    typer.echo(f"Wrote {out_cards_path} and {out_report_path}")
+
+    typer.echo(f"✅ Generated {len(result.cards)} cards successfully!")
+    typer.echo(f"📁 Output files: {out_cards_path}, {out_report_path}")
+    typer.echo(
+        f"⚡ Performance: {result.metrics.total_time:.2f}s total, {result.metrics.attempts_per_card:.1f} avg attempts/card"
+    )
+
     raise typer.Exit(code=0)
 
 

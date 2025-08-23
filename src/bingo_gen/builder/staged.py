@@ -115,9 +115,7 @@ def pack_cards_from_pool(
                 for perm in itertools.permutations(base):
                     cols = []
                     for j in range(n):
-                        col_vals = [matrix[r][j] for r in range(len(matrix))] + [
-                            perm[j]
-                        ]
+                        col_vals = [matrix[r][j] for r in range(len(matrix))] + [perm[j]]
                         cols.append(col_vals)
                     if not all(vertical_ok(cv) for cv in cols):
                         continue
