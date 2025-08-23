@@ -33,18 +33,14 @@ def run(
         "--config",
         help="Path to config file (YAML/JSON)",
     ),
-    out_cards: str = typer.Option(
-        None, "--out-cards", help="cards.json output path"
-    ),
+    out_cards: str = typer.Option(None, "--out-cards", help="cards.json output path"),
     out_report: str = typer.Option(
         None, "--out-report", help="report.json output path"
     ),
     log_file: str = typer.Option(None, "--log-file", help="Log file path"),
     colors: str = typer.Option("auto", "--colors", help="auto|always|never"),
     log_level: str = typer.Option("INFO", "--log-level", help="DEBUG|INFO|WARN|ERROR"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Resolve params and exit"
-    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Resolve params and exit"),
     force: bool = typer.Option(
         False, "--force", help="Overwrite outputs if they exist"
     ),

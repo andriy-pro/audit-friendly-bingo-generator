@@ -59,7 +59,9 @@ def build_cards(
             score = horizontal_consecutive_penalty(candidate)
             if anchors is not None:
                 score += sum(
-                    1 for j, a in enumerate(anchors) if a is not None and abs(candidate[j] - a) == 1
+                    1
+                    for j, a in enumerate(anchors)
+                    if a is not None and abs(candidate[j] - a) == 1
                 )
             if score < best_score:
                 best_score = score
@@ -110,7 +112,9 @@ def build_cards(
                 cards.append(matrix)
                 continue
 
-            def choose_row(pool: List[int], anchors: Optional[List[int]]) -> Optional[List[int]]:
+            def choose_row(
+                pool: List[int], anchors: Optional[List[int]]
+            ) -> Optional[List[int]]:
                 # Sample candidate sets from top-K pool and pick minimal-penalty ordering
                 if len(pool) < n:
                     return None
@@ -143,7 +147,7 @@ def build_cards(
                 # Fallback: contiguous slice strategy
                 if picked is None:
                     for i in range(0, max(1, len(pool) - n + 1)):
-                        row = pool[i:i + n]
+                        row = pool[i : i + n]
                         if len(set(row)) != n:
                             continue
                         s_row = tuple(sorted(row))
