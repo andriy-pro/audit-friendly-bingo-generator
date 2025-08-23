@@ -82,7 +82,5 @@ class UniversalCardBuilder:
             unique_scope=unique_scope,
         )
 
-        metrics = BuildMetrics(
-            total_time=0.0, attempts_per_card=1.0, constraint_violations=0
-        )
+        metrics = BuildMetrics(total_time=0.0, attempts_per_card=1.0, constraint_violations=0)
         return BuildResult(cards=cards, metrics=metrics)
