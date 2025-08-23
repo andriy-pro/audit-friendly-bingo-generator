@@ -1,3 +1,122 @@
+# Bingo/Tombola Card Generator — Simple, Audit‑Friendly Spec
+
+## What this tool does
+
+Deterministic generator of Bingo/Tombola cards that is easy to run, verify, and
+audit. Focus: a minimal, robust contract that is simple to implement now and
+extensible later.
+
+## Minimal scope (always on)
+
+- Numbers are drawn from `1..R`.
+- Card is an `m×n` matrix with no duplicates within a card.
+- Uniformity of global frequencies:
+  - `strict` if `(T*m*n) % R == 0` (all numbers appear equally often), otherwise
+  - `near` (difference between max and min frequency ≤ 1).
+- All cards are different by full `m×n` content.
+
+## Recommended extras (enable via config)
+
+- `unique_scope: [row_sets]` — forbid repeated row‑sets across all cards (treat
+  rows as sets).
+- `unique_scope: [row_sets, col_sets]` — also forbid repeated column‑sets.
+- `position_balance: true` — softly equalize per‑position usage to reduce bias.
+
+These improve variety and perceived fairness but are not required for the
+minimal contract.
+
+## Quick start
+
+```yaml
+# config.yaml (minimal)
+R: 75
+T: 150
+m: 3
+n: 4
+uniformity: strict # falls back to near if not divisible
+unique_scope: [row_sets] # safer & simpler default
+seed: { mode: integer, value: 20250824, engine: py_random }
+```
+
+```bash
+# Run
+bingo-gen run --config config.yaml --out-cards cards.json --out-report report.json
+
+# Dry-run (only checks & plan)
+bingo-gen run --config config.yaml --dry-run
+
+# Verify artifacts
+bingo-gen verify --cards cards.json --report report.json --strict
+```
+
+## Feasibility guardrails (pre‑checks)
+
+Let `P = T*m*n`.
+
+- Duplicates avoidance: require `R ≥ m*n`.
+- Uniformity:
+  - strict requires `P % R == 0`;
+  - near targets `⌊P/R⌋` or `⌈P/R⌉` per number.
+- Uniqueness capacity (if enabled):
+  - rows: `T*m ≤ C(R, n)`; columns: `T*n ≤ C(R, m)`.
+
+Errors explain which bound fails and how to fix (increase `R`, relax uniqueness,
+or switch to `near`).
+
+## Build strategy (simple & reproducible)
+
+Heuristic fill with local swaps under global frequency quotas:
+
+- Respect remaining global frequencies and “no duplicates in a card”.
+- Avoid row/column‑set collisions when `unique_scope` is set (hash sets).
+- Keep runs deterministic via a fixed `seed` and stable tie‑breaking.
+
+## Outputs (machine‑readable)
+
+- `cards.json` — cards list plus `run_meta` (version, `params_hash`, seed,
+  engine) and hashes.
+- `report.json` — frequencies, uniformity summary, uniqueness summary (if
+  checked), basic build metrics.
+
+`params_hash` binds outputs to inputs for audit.
+
+## Verification
+
+`bingo-gen verify` re‑checks: no duplicates per card, card uniqueness,
+uniformity (strict/near), and row/column‑set uniqueness if requested.
+
+## Safe defaults (suggested)
+
+- `uniformity: strict` (auto‑fallback to near)
+- `unique_scope: [row_sets]`
+- `position_balance: false` (enable when you want gentler per‑position spread)
+- `card_id_mode: sequential`, `seed.engine: py_random`
+
+These defaults minimize complexity while preserving fairness and auditability.
+
+## Performance & determinism
+
+- Time grows with `T`, `m*n`, and strictness of uniqueness.
+- Determinism: same config + same seed ⇒ identical outputs (single‑threaded).
+- Parallel mode can change outputs due to scheduling; prefer single‑thread for
+  audits.
+
+## Why this is simpler yet reliable
+
+- Minimal constraints (no duplicates, card uniqueness, strict/near uniformity)
+  are sufficient for fairness in common bingo play.
+- Optional row/column‑set uniqueness and position balancing can be enabled when
+  variety matters more than ease of construction.
+- Deterministic seed, explicit `params_hash`, and JSON artifacts provide a
+  strong audit trail.
+
+## Further simplifications (optional)
+
+- Drop `col_sets` from `unique_scope` — keep only `row_sets` for simpler builds.
+- Disable `position_balance` — reduces search pressure under tight bounds.
+- Use `near` uniformity when `(T*m*n) % R != 0` instead of forcing strict.
+- Prefer `card_id_mode: sequential` and `seed.engine: py_random` for clarity.
+
 # Bingo/Tombola Card Generator (Technical Spec)
 
 ## 1) Project Summary
@@ -93,8 +212,7 @@ seed:
 card_id_mode: "sequential" # "uuid" | "sequential"
 card_number_start: 1 # starting number if sequential
 
-# ---- Algorithm strategy ----
-bbd_mode: "auto" # attempt BIBD/Balanced design when feasible; fallback otherwise
+# ---- Build controls ----
 build_timeout_sec: 90
 swap_iterations: 20000
 
@@ -178,7 +296,7 @@ Included fields (contract):
 - `unique_scope` (normalized: de-duplicated and sorted list)
 - `uniformity`, `position_balance`
 - `seed.value`, `seed.engine`
-- `bbd_mode`, `build_timeout_sec`, `swap_iterations`
+- `build_timeout_sec`, `swap_iterations`
 - `parallel` (if enabled) and `parallelism` value
 - `allow_best_effort` (affects termination criteria)
 
@@ -200,8 +318,7 @@ Notes:
 
 ### Step 2 — Card construction
 
-- Try **BIBD-like strategy** (`bbd_mode=auto`) when parameters permit.
-- Otherwise, use a **heuristic fill**:
+- Use a **heuristic fill with local swaps**:
 
   - Fill cards position by position, respecting:
 
@@ -401,7 +518,6 @@ uniformity: strict
 seed: { mode: integer, value: 20250824, engine: py_random }
 card_id_mode: sequential
 card_number_start: 1
-bbd_mode: auto
 colors: auto
 log_level: INFO
 out_cards: cards.json
@@ -478,9 +594,9 @@ bingo-gen verify --cards cards.json --report report.json --params params.json --
    sets, so card duplication is already impossible. We keep the explicit check
    to defend against implementation mistakes.
 
-4. **BIBD first, heuristic second:** BIBD-like structures (when they exist)
-   maximize balance and minimize collisions. When parameters don’t fit known
-   designs, a greedy+swap heuristic is practical and explainable.
+4. **Single algorithm policy:** The generator uses one heuristic algorithm with
+   local swaps. This keeps the system simpler to reason about, easier to audit,
+   and deterministic under a fixed seed.
 
 5. **Position balance as a soft constraint:** Prevents “favorite columns/rows”.
    It’s soft to avoid dead-ends under tight uniqueness constraints.
