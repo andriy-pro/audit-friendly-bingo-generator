@@ -6,8 +6,8 @@ from pathlib import Path
 
 import typer
 
-from .core import UniversalCardBuilder, BuildParams
 from .config import resolve_parameters
+from .core import BuildParams, UniversalCardBuilder
 from .logging_setup import setup_logging
 from .serialize import build_run_meta, emit_cards_json, emit_report_json
 from .verify import verify as verify_artifacts
@@ -34,16 +34,31 @@ def run(
         "--config",
         help="Path to config file (YAML/JSON)",
     ),
+    # Single algorithm policy: keep option for UX but normalize to one strategy.
     profile: str = typer.Option(
-        "default", "--profile", help="Generation profile: default|fast|optimal"
+        "heuristic",
+        "--profile",
+        help="Generation profile (heuristic only)",
     ),
     out_cards: str = typer.Option(None, "--out-cards", help="cards.json output path"),
     out_report: str = typer.Option(None, "--out-report", help="report.json output path"),
     log_file: str = typer.Option(None, "--log-file", help="Log file path"),
-    colors: str = typer.Option("auto", "--colors", help="auto|always|never"),
-    log_level: str = typer.Option("INFO", "--log-level", help="DEBUG|INFO|WARN|ERROR"),
+    colors: str = typer.Option(
+        "auto",
+        "--colors",
+        help="auto|always|never",
+    ),
+    log_level: str = typer.Option(
+        "INFO",
+        "--log-level",
+        help="DEBUG|INFO|WARN|ERROR",
+    ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Resolve params and exit"),
-    force: bool = typer.Option(False, "--force", help="Overwrite outputs if they exist"),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite outputs if they exist",
+    ),
     no_mkdirs: bool = typer.Option(False, "--no-mkdirs", help="Do not create parent directories"),
     summary_csv: str = typer.Option(None, "--summary-csv", help="Path to summary.csv (optional)"),
     csv_by_position: bool = typer.Option(
@@ -52,11 +67,8 @@ def run(
 ) -> None:
     """Construct cards and report according to provided configuration."""
 
-    # Validate profile
-    valid_profiles = ["default", "fast", "optimal"]
-    if profile not in valid_profiles:
-        typer.echo(f"Invalid profile: {profile}. Valid profiles: {', '.join(valid_profiles)}")
-        raise typer.Exit(1)
+    # Normalize profile to single supported strategy
+    profile = "heuristic"
 
     cli_overrides = {}
     if out_cards:
@@ -70,7 +82,7 @@ def run(
     if log_level:
         cli_overrides["log_level"] = log_level
 
-    resolved, params_hash, cfg_path = resolve_parameters(
+    resolved, params_hash, _cfg_path_unused = resolve_parameters(
         config_path_str=config, cli_overrides=cli_overrides
     )
 
@@ -111,10 +123,10 @@ def run(
     )
 
     # Build cards using universal builder
-    typer.echo(f"Using {profile} generation strategy...")
+    typer.echo("Using heuristic generation strategy...")
     start_time = time.time()
 
-    builder = UniversalCardBuilder(strategy=profile)
+    builder = UniversalCardBuilder(strategy="heuristic")
     result = builder.build(build_params)
 
     # Update metrics with actual time
@@ -160,18 +172,18 @@ def run(
         from .serialize import emit_summary_csv
 
         freqs = report.get("frequencies", {})
-        pos = report.get("position_frequencies", {}) if csv_by_position else None
+        by_pos = report.get("position_frequencies", {}) if csv_by_position else None
 
         # Type safety for mypy
         if not isinstance(freqs, dict):
             freqs = {}
-        if pos is not None and not isinstance(pos, dict):
-            pos = None
+        if by_pos is not None and not isinstance(by_pos, dict):
+            by_pos = None
 
         emit_summary_csv(
             Path(summary_csv),
             freqs=freqs,
-            by_position=pos,
+            by_position=by_pos,
             mkdirs=(not no_mkdirs),
             overwrite=force,
         )
@@ -179,7 +191,8 @@ def run(
     typer.echo(f"✅ Generated {len(result.cards)} cards successfully!")
     typer.echo(f"📁 Output files: {out_cards_path}, {out_report_path}")
     typer.echo(
-        f"⚡ Performance: {result.metrics.total_time:.2f}s total, {result.metrics.attempts_per_card:.1f} avg attempts/card"
+        f"⚡ Performance: {result.metrics.total_time:.2f}s total, "
+        f"{result.metrics.attempts_per_card:.1f} avg attempts/card",
     )
 
     raise typer.Exit(code=0)
@@ -187,11 +200,11 @@ def run(
 
 @app.command()
 def verify(
-    cards: str = typer.Option(..., "--cards", help="Path to cards.json"),
-    report: str = typer.Option(..., "--report", help="Path to report.json"),
-    params: str = typer.Option(None, "--params", help="Path to resolved params JSON"),
-    strict: bool = typer.Option(False, "--strict", help="Fail on any deviation"),
-    report_only: bool = typer.Option(
+    _cards: str = typer.Option(..., "--cards", help="Path to cards.json"),
+    _report: str = typer.Option(..., "--report", help="Path to report.json"),
+    _params: str = typer.Option(None, "--params", help="Path to resolved params JSON"),
+    _strict: bool = typer.Option(False, "--strict", help="Fail on any deviation"),
+    _report_only: bool = typer.Option(
         False, "--report-only", help="Validate only report.json schema"
     ),
 ) -> None:
@@ -200,15 +213,12 @@ def verify(
     raise typer.Exit(code=0)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(_argv: list[str] | None = None) -> int:
     try:
         app(standalone_mode=True)
         return 0
     except SystemExit as e:
         return int(e.code) if e.code is not None else 0
-    except Exception as exc:  # pragma: no cover - scaffold safety
-        typer.echo(str(exc))
-        return 1
 
 
 if __name__ == "__main__":  # pragma: no cover

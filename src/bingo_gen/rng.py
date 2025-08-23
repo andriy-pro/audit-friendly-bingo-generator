@@ -5,10 +5,9 @@ import random
 from dataclasses import dataclass
 from typing import List, Sequence
 
-
 try:  # optional dependency
     import numpy as _np  # type: ignore
-except Exception:  # pragma: no cover - optional
+except ImportError:  # pragma: no cover - optional
     _np = None
 
 

@@ -59,7 +59,7 @@ def test_params_hash_contract_stability():
         "uniformity": "strict",
         "position_balance": True,
         "seed": {"engine": "py_random", "value": 20250824},
-        "bbd_mode": "auto",
+        # bbd_mode removed by single-algorithm policy
         "build_timeout_sec": 90,
         "swap_iterations": 20000,
         "parallel": False,

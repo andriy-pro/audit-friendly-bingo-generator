@@ -2,19 +2,21 @@ R: 75
 T: 150
 m: 3
 n: 4
-# unique_scope: [row_sets, col_sets]
 unique_scope: [row_sets]
 uniformity: strict
-position_balance: true
+position_balance: false
 seed:
   mode: integer
   value: 20250824
   engine: py_random
 card_id_mode: sequential
 card_number_start: 1
+# Build controls
+build_timeout_sec: 90
+swap_iterations: 20000
+# Output & UX (can be overridden via CLI flags)
 colors: auto
 log_level: INFO
 out_cards: cards.json
 out_report: report.json
-summary_csv: summary.csv
 

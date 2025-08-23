@@ -8,7 +8,7 @@ from typing import Any, Dict, Mapping, Tuple
 
 try:
     import yaml  # type: ignore
-except Exception:  # pragma: no cover - loader fallback
+except ImportError:  # pragma: no cover - loader fallback
     yaml = None
 
 
@@ -66,8 +66,7 @@ def _collect_env_vars(env: Mapping[str, str]) -> Dict[str, Any]:
         # IDs
         f"{ENV_PREFIX}CARD_ID_MODE": "card_id_mode",
         f"{ENV_PREFIX}CARD_NUMBER_START": "card_number_start",
-        # Strategy
-        f"{ENV_PREFIX}BBD_MODE": "bbd_mode",
+        # Build controls
         f"{ENV_PREFIX}BUILD_TIMEOUT_SEC": "build_timeout_sec",
         f"{ENV_PREFIX}SWAP_ITERATIONS": "swap_iterations",
         # Output & UX
@@ -161,7 +160,6 @@ def compute_params_hash(resolved: Mapping[str, Any]) -> str:
         "unique_scope",
         "uniformity",
         "position_balance",
-        "bbd_mode",
         "build_timeout_sec",
         "swap_iterations",
         "parallel",
@@ -257,6 +255,9 @@ def resolve_parameters(
         "log_level": "INFO",
         "log_format": "text",
         "stats_engine": "wilson_hilferty",
+        # prefer simple defaults per README
+        "uniformity": "strict",
+        "unique_scope": ["row_sets"],
     }
 
     # Merge: config > defaults, then ENV, then CLI

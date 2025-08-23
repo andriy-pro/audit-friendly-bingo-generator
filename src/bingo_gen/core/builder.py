@@ -26,7 +26,7 @@ class BuildParams:
     seed: int
     rng_engine: str = "py_random"
     position_balance: bool = False
-    strategy: str = "auto"
+    strategy: str = "heuristic"
 
 
 @dataclass
@@ -58,7 +58,7 @@ class UniversalCardBuilder:
     maintaining multiple builder implementations.
     """
 
-    def __init__(self, strategy: str = "auto"):
+    def __init__(self, strategy: str = "heuristic"):
         self.strategy = strategy
 
     def build(self, params: BuildParams) -> BuildResult:
@@ -82,5 +82,9 @@ class UniversalCardBuilder:
             unique_scope=unique_scope,
         )
 
-        metrics = BuildMetrics(total_time=0.0, attempts_per_card=1.0, constraint_violations=0)
+        metrics = BuildMetrics(
+            total_time=0.0,
+            attempts_per_card=1.0,
+            constraint_violations=0,
+        )
         return BuildResult(cards=cards, metrics=metrics)
