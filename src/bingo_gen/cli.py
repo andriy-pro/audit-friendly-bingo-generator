@@ -30,16 +30,26 @@ def common_options(
 
 @app.command()
 def run(
-    config: str = typer.Option(None, "--config", help="Path to config file (YAML/JSON)"),
+    config: str = typer.Option(
+        None, "--config", help="Path to config file (YAML/JSON)"
+    ),
     out_cards: str = typer.Option(None, "--out-cards", help="cards.json output path"),
-    out_report: str = typer.Option(None, "--out-report", help="report.json output path"),
+    out_report: str = typer.Option(
+        None, "--out-report", help="report.json output path"
+    ),
     log_file: str = typer.Option(None, "--log-file", help="Log file path"),
     colors: str = typer.Option("auto", "--colors", help="auto|always|never"),
     log_level: str = typer.Option("INFO", "--log-level", help="DEBUG|INFO|WARN|ERROR"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Resolve params and exit"),
-    force: bool = typer.Option(False, "--force", help="Overwrite outputs if they exist"),
-    no_mkdirs: bool = typer.Option(False, "--no-mkdirs", help="Do not create parent directories"),
-    summary_csv: str = typer.Option(None, "--summary-csv", help="Path to summary.csv (optional)"),
+    force: bool = typer.Option(
+        False, "--force", help="Overwrite outputs if they exist"
+    ),
+    no_mkdirs: bool = typer.Option(
+        False, "--no-mkdirs", help="Do not create parent directories"
+    ),
+    summary_csv: str = typer.Option(
+        None, "--summary-csv", help="Path to summary.csv (optional)"
+    ),
     csv_by_position: bool = typer.Option(
         False, "--csv-by-position", help="Include per-position counts in CSV"
     ),
@@ -86,15 +96,23 @@ def run(
     if cards is not None:
         # Validate BIBD result against uniqueness; fallback if violations found
         pre_report = verify_artifacts(cards, R=R, m=m, n=n, unique_scope=unique_scope)
-        uniqueness_data = pre_report.get("uniqueness", {}) if isinstance(pre_report, dict) else {}
+        uniqueness_data = (
+            pre_report.get("uniqueness", {}) if isinstance(pre_report, dict) else {}
+        )
         row_collisions = (
-            uniqueness_data.get("row_set_collisions", 0) if isinstance(uniqueness_data, dict) else 0
+            uniqueness_data.get("row_set_collisions", 0)
+            if isinstance(uniqueness_data, dict)
+            else 0
         )
         col_collisions = (
-            uniqueness_data.get("col_set_collisions", 0) if isinstance(uniqueness_data, dict) else 0
+            uniqueness_data.get("col_set_collisions", 0)
+            if isinstance(uniqueness_data, dict)
+            else 0
         )
         no_identical = (
-            pre_report.get("ok_no_identical_cards") if isinstance(pre_report, dict) else True
+            pre_report.get("ok_no_identical_cards")
+            if isinstance(pre_report, dict)
+            else True
         )
         if row_collisions > 0 or col_collisions > 0 or (no_identical is False):
             cards = None
