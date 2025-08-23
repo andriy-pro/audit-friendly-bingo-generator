@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Any
 
 
 class RowOptimizer:
@@ -11,7 +11,7 @@ class RowOptimizer:
     def __init__(self, max_attempts: int = 20):
         self.max_attempts = max_attempts
 
-    def optimize(self, row: List[int], anchors: Optional[List[int]], rng) -> List[int]:
+    def optimize(self, row: List[int], anchors: Optional[List[int]], rng: Any) -> List[int]:
         """Optimize row order to minimize penalties."""
 
         if not anchors:
@@ -21,7 +21,7 @@ class RowOptimizer:
         # Optimize both horizontal and vertical spread
         return self._optimize_combined(row, anchors, rng)
 
-    def _optimize_horizontal(self, row: List[int], rng) -> List[int]:
+    def _optimize_horizontal(self, row: List[int], rng: Any) -> List[int]:
         """Optimize horizontal spread only."""
         best = row[:]
         best_score = self._calculate_horizontal_penalty(best)
@@ -40,7 +40,7 @@ class RowOptimizer:
 
         return best
 
-    def _optimize_combined(self, row: List[int], anchors: List[int], rng) -> List[int]:
+    def _optimize_combined(self, row: List[int], anchors: List[int], rng: Any) -> List[int]:
         """Optimize both horizontal and vertical spread."""
         best = row[:]
         best_score = self._calculate_combined_penalty(best, anchors)
